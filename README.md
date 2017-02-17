@@ -1,1 +1,1 @@
-# EECS 391 Project 1
+# EECS 345 Project 1
