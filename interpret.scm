@@ -1,6 +1,8 @@
 ;The main function, it gets the parse tree and divides up the statements
 ; which are then read in sequential order
 ;Functions in this file can only access the state through other functions in states.scm
+(load "simpleParser.scm")
+(load "states.scm")
 
 (define interpret
   (lambda (l)
