@@ -1,10 +1,13 @@
-;
+;The main function, it gets the parse tree and divides up the statements
+; which are then read in sequential order
+;Functions in this file can only access the state through other functions in states.scm
+
 (define interpret
   (lambda (l)
     (cond
       ((null? l) '())
       (else
-       (car l) ))))
+       (runStatement (car l) )))))
 
 ; Runs the line it is given.
 ; if run statements finds a return, it prints(return?) the proper value.
