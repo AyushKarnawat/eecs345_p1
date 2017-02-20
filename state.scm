@@ -27,9 +27,9 @@
       ((eq? n (car (car s))) (cdr s))
       (else (cons (car s) (removeVar n (cdr s)))) )))
 
-;This is a helper function used by addVar to reassemble the state with the new variable pair
+; This is a helper function used by addVar to reassemble the state with the new (name value) pair
 (define assembleState
-  (lambda (s v) ;The new state and the new variable pair
+  (lambda (s v) ; The new state and the new variable pair
     (cond
-      ((null? s) v) ;If s is empty, return the new variable pair to append to the end
+      ((null? s) v) ; If s is empty, return the new variable pair to append to the end
       (else (cons (car s) (assembleState (cdr s) v))) )))
