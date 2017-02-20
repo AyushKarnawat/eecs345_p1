@@ -14,8 +14,8 @@
 (define interpret
   (lambda (file)
     (cond
-      ((null? (parser file)) '())
-      (else (runStatementList (parser file))) )))
+      ((null? file) '())
+      (else (runStatementList file)) )))
 
 ; Runs the entire statement tree recursively by using runStatement multiple times.
 ; 
@@ -26,23 +26,25 @@
     (cond 
       ((null? l) '())
       ((null? (cdr l)) (runStatement (car l)))      ; if there is the only one statement in the list to be evaluated
-      (else (cons (runStatement (car l))            ; call runStatement on the first list  
-                  (runStatementList (cdr l)) )))))  ; and on the rest of the list
+      (else (runStatement (car l))            ; call runStatement on the first list  
+            (runStatementList (cdr l))) )))  ; and on the rest of the list
       
 ; Runs the given statement by calling the necessary functions.
 ; When the function finds a return statement, it returns the value of the given variable name.
+; runStatement and its subfunctions all do M_state procedures. These do not directly affect the state,
+;  but rather they call functions in state.scm that affect the state. 
 ; 
 ; params:
-;   l: statements (i.e. (var x), (= x 10), (return x) ...)
+;   l: a statement (i.e. (var x), (= x 10), (return x) ...)
 (define runStatement
   (lambda (l)
     (cond
       ((null? l) '())
-      ((eq? (car l) 'var) declareVar(cdr l))    ; call variable declaration on rest of the statement
-      ((eq? (car l) '=) assign(cdr l))          ; call assignment on rest of statement
-      ((eq? (car l) 'return) return(cdr l))     ; call return on rest of statement
-      ((eq? (car l) 'if) conditional(cdr l))    ; call if on rest of statement
-      ((eq? (car l) 'while) loop(cdr l))        ; call while on rest of statement
+      ((eq? (car l) 'var) (declareVar (cdr l)))    ; call variable declaration on rest of the statement
+      ((eq? (car l) '=) (assign (cdr l)))          ; call assignment on rest of statement
+      ((eq? (car l) 'return) (return (cdr l)))     ; call return on rest of statement
+      ((eq? (car l) 'if) (conditional (cdr l)))    ; call if on rest of statement
+      ((eq? (car l) 'while) (loop (cdr l)))        ; call while on rest of statement
       (else
        (error "Not a valid statement!")) )))
 
@@ -54,7 +56,7 @@
   (lambda (l)
     (cond
       ((null? (cdr l)) (addVar (car l) '()))    ; if the only given statement is the variable name, assign its value to an empty list
-      (else (addVar (car l) (car (car l)))) ))) ; if an variable name and its value are given
+      (else (addVar (car l) (car (cdr l)))) ))) ; if an variable name and its value are given
       
 (define assign
  (lambda (l)

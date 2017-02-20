@@ -1,7 +1,6 @@
 ; This file is where the state is stored.
 ; All the functions in this file have to do with reading or writing from the state.
-; In order to get the state, functions just need to ask for S.
-
+; In order to get the state, functions in this file just need to ask for S.
 
 ; The state S is a list of (name value) pairs for variables.
 (define S '())
@@ -49,3 +48,11 @@
     (cond
       ((null? s) v) ; If s is empty, return the new variable pair to append to the end
       (else (cons (car s) (assembleState (cdr s) v))) )))
+
+; This function evaluates an expression recursively, dealing with both numerical and boolean operators
+; In this way, it is performing both M_value and M_boolean operations
+
+(define evaluateExpression
+  (lambda (l)
+    (cond
+      
