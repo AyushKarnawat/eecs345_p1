@@ -4,6 +4,13 @@
 ; All the functions in this file have to do with reading or writing from the state.
 ; In order to get the state, functions just need to ask for S.
 
+; Redefining basic scheme keywords (car , cdr, cadr, cons, etc..) for abstraction
+(define next car)
+(define combine cons)
+;(define rest cdr)   These rewordings are default behavior in PrettyBig
+;(define second cadr)
+;(define third caddr)
+
 ; The state S is a list of (name value) pairs for variables.
 (define S '())
 
@@ -33,8 +40,8 @@
   (lambda (n s)
     (cond
       ((null? s) #f)              ; base case: var not in state
-      ((eq? n (car (car s))) #t)  ; if var found, return true
-      (else (recursiveDeclared? n (cdr s)) ) )))
+      ((eq? n (next (next s))) #t)  ; if var found, return true
+      (else (recursiveDeclared? n (rest s)) ) )))
 
 ; Adds a single variable (a (name value) pair) to the state.
 ; If that variable is already in the state, it removes the old pair and adds the new one.
@@ -45,7 +52,7 @@
 (define addVar
   (lambda (n v)
     (setState (assembleState (removeVar n S) ; reassemble the state using the new state after removing the variable
-                             (cons (cons n (cons v '())) '()) )))) ; as well as the new variable pair
+                             (combine (combine n (combine v '())) '()) )))) ; as well as the new variable pair
 
 ; This function is a recursive function that looks through the current state s 
 ; and removes the first instance of a variable with the name n.
@@ -57,8 +64,8 @@
   (lambda (n s)
     (cond
       ((null? s) '())
-      ((eq? n (car (car s))) (cdr s))
-      (else (cons (car s) (removeVar n (cdr s)))) )))
+      ((eq? n (next (next s))) (rest s))
+      (else (combine (next s) (removeVar n (rest s)))) )))
 
 ; Helper function used by addVar to reassemble the state with the new (name value) pair.
 ; 
@@ -69,7 +76,7 @@
   (lambda (s v)
     (cond
       ((null? s) v) ; If s is empty, return the new variable pair to append to the end
-      (else (cons (car s) (assembleState (cdr s) v))) )))
+      (else (combine (next s) (assembleState (rest s) v))) )))
 
 ; This function evaluates an expression recursively, dealing with both numerical and boolean operators
 ; In this way, it is performing both M_value and M_boolean operations
@@ -83,22 +90,22 @@
       ((atom? l) (if (declared? l) (if (not (null? (valueOf l S))) (valueOf l S)
                                                                    (error "Variable is not assigned!"))
                                    (error "Variable was not declared")))
-      ((eq? (car l) '+) (+ (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '-) (if (null? (cddr l)) (* (evalExp (cadr l)) -1)
-                                             (- (evalExp (cadr l)) (evalExp (caddr l))) ))
-      ((eq? (car l) '*) (* (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '/) (quotient (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '%) (modulo (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '==) (eq? (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '!=) (not (eq? (evalExp (cadr l)) (evalExp (caddr l)))))
-      ((eq? (car l) '<) (< (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '>) (> (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '<=) (<= (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '>=) (>= (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '&&) (and (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '||) (or (evalExp (cadr l)) (evalExp (caddr l))))
-      ((eq? (car l) '!) (not (evalExp (cadr l))))
-      (else (if (declared? (car l)) (valueOf (car l) S) (error ("Variable was not declared!")))))))
+      ((eq? (car l) '+) (+ (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '-) (if (null? (rest (rest l))) (* (evalExp (second l)) -1)
+                                                    (- (evalExp (second l)) (evalExp (third l))) ))
+      ((eq? (car l) '*) (* (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '/) (quotient (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '%) (modulo (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '==) (eq? (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '!=) (not (eq? (evalExp (second l)) (evalExp (third l)))))
+      ((eq? (car l) '<) (< (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '>) (> (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '<=) (<= (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '>=) (>= (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '&&) (and (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '||) (or (evalExp (second l)) (evalExp (third l))))
+      ((eq? (car l) '!) (not (evalExp (second l))))
+      (else (if (declared? (next l)) (valueOf (next l) S) (error ("Variable was not declared!")))))))
 
 ; A recursive function that finds the value (int or bool) of a declared variable in the state
 
@@ -106,7 +113,7 @@
   (lambda (x l)
     (cond
       ((null? l) '())
-      ((eq? (caar l) x) (cadar l))
+      ((eq? (next (next l)) x) (second (first l)))
       (else (valueOf x (cdr l))) )))
 
 ; Used under MIT License The Little Schemer. All Rights Reserved

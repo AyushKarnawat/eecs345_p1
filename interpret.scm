@@ -7,6 +7,13 @@
 (load "simpleParser.scm")
 (load "state.scm")
 
+; Redefining basic scheme keywords (car , cdr, cadr, cons, etc..) for abstraction
+(define next car)
+(define combine cons)
+;(define rest cdr)   These rewordings are default behavior in PrettyBig
+;(define second cadr)
+;(define third caddr)
+
 ; Parses the given filename into a tree (through the parser function provided), 
 ; and pass the parse tree onto the runStatementList so that it can be evaluated.
 ; 
@@ -26,9 +33,9 @@
   (lambda (l)
     (cond 
       ((null? l) '())
-      ((null? (cdr l)) (runStatement (car l)))  ; if there is the only one statement in the list to be evaluated
-      (else (runStatement (car l))              ; call runStatement on the first list  
-            (runStatementList (cdr l))) )))     ; and on the rest of the list
+      ((null? (rest l)) (runStatement (next l)))  ; if there is the only one statement in the list to be evaluated
+      (else (runStatement (next l))              ; call runStatement on the first list  
+            (runStatementList (rest l))) )))     ; and on the rest of the list
       
 ; Runs the given statement by calling the necessary functions.
 ; When the function finds a return statement, it returns the value of the given variable name.
@@ -39,11 +46,11 @@
   (lambda (l)
     (cond
       ((null? l) '())
-      ((eq? (car l) 'var) (declareVar (cdr l))) ; call variable declaration on rest of the statement
-      ((eq? (car l) '=) (assign (cdr l)))       ; call assignment on rest of statement
-      ((eq? (car l) 'return) (return (cdr l)))  ; call return on rest of statement
-      ((eq? (car l) 'if) (conditional (cdr l))) ; call if on rest of statement
-      ((eq? (car l) 'while) (loop (cdr l)))     ; call while on rest of statement
+      ((eq? (next l) 'var) (declareVar (rest l))) ; call variable declaration on rest of the statement
+      ((eq? (next l) '=) (assign (rest l)))       ; call assignment on rest of statement
+      ((eq? (next l) 'return) (return (rest l)))  ; call return on rest of statement
+      ((eq? (next l) 'if) (conditional (rest l))) ; call if on rest of statement
+      ((eq? (next l) 'while) (loop (rest l)))     ; call while on rest of statement
       (else
        (error "Not a valid statement!")) )))
 
@@ -54,8 +61,8 @@
 (define declareVar
   (lambda (l)
     (cond
-      ((null? (cdr l)) (addVar (car l) '())) ; if the only given statement is the variable name, assign its value to an empty list
-      (else (addVar (car l) (evalExp (cadr l)))) ))) ; if an variable name and its value are given
+      ((null? (rest l)) (addVar (next l) '())) ; if the only given statement is the variable name, assign its value to an empty list
+      (else (addVar (next l) (evalExp (second l)))) ))) ; if an variable name and its value are given
 
 ; Assigns a value to a variable.
 ; 
@@ -65,8 +72,8 @@
  (lambda (l)
   (cond
     ((null? l) '())
-    ((declared? (car l)) (addVar (car l) (evalExp (cadr l))))
-    (else ((declared? (car l)) (error "Variable is not declared."))) ))) ; if the variable is avaliable in the state, assign the value to the var
+    ((declared? (next l)) (addVar (next l) (evalExp (second l))))
+    (else ((declared? (next l)) (error "Variable is not declared."))) ))) ; if the variable is avaliable in the state, assign the value to the var
 
 ; Returns a given expression or variable.
 ;
@@ -79,9 +86,9 @@
   (lambda (l)
     (cond
       ((null? l) (error "Return was passed a null list"))
-      ((eq? (evalExp (car l)) #t) 'true)
-      ((eq? (evalExp (car l)) #f) 'false)
-      (else (evalExp (car l))) )))
+      ((eq? (evalExp (next l)) #t) 'true)
+      ((eq? (evalExp (next l)) #f) 'false)
+      (else (evalExp (next l))) )))
 
 ; example of if statement as passed:
 ;      expr    then       else (in this case, if)
@@ -90,9 +97,9 @@
 (define conditional
   (lambda (l)
     (cond
-      ((evalExp (car l)) (runStatement (car (cdr l)))) ; test whether (car l) is true
-      ((null? (cddr l)) '())
-      (else (runStatement(caddr l))) ))) ;if expr to evaluate is false
+      ((evalExp (next l)) (runStatement (next (rest l)))) ; test whether (car l) is true
+      ((null? (rest (rest l))) '())
+      (else (runStatement(third l))) ))) ;if expr to evaluate is false
 
 ; As the name suggests, loop until test-expr is true
 ;   test-expr using evalExpr | body of loop
@@ -100,5 +107,5 @@
 (define loop
   (lambda (l)
     (cond
-      ((not (evalExp (car l))) '())
-      (else (runStatement (cadr l)) (loop l)) ))) ; check statement, and loop again
+      ((not (evalExp (next l))) '())
+      (else (runStatement (second l)) (loop l)) ))) ; check statement, and loop again
