@@ -12,7 +12,7 @@
 ;(define third caddr)
 
 ; The state S is a list of (name value) pairs for variables.
-(define S '())
+(define S '(()))
 
 ; In order to reset the state, functions will need to use setState. 
 ; This should only be used by functions in this file.
@@ -22,6 +22,15 @@
 (define setState
   (lambda (x)
     (set! S x)))
+
+(define addLayer
+  (lambda ()
+    (setState (combine '() S)) ))
+
+(define removeLayer
+  (lambda ()
+    (setState (rest S))))
+
 
 ; Function declared looks through state S and returns true if variable is declared.
 ;
@@ -40,19 +49,46 @@
   (lambda (n s)
     (cond
       ((null? s) #f)              ; base case: var not in state
+      ((null? (next s)) (recursiveDeclared? n (rest s)))
       ((eq? n (next (next s))) #t)  ; if var found, return true
+      ((list? (next (next s))) (or (recursiveDeclared? n (next s)) (recursiveDeclared? n (rest s))))
       (else (recursiveDeclared? n (rest s)) ) )))
 
-; Adds a single variable (a (name value) pair) to the state.
-; If that variable is already in the state, it removes the old pair and adds the new one.
-; 
+; Adds a single variable (a (name value) pair) to the highest layer.
+; Only use this function if the variable hasn't already been declared anywhere
+;
 ; params:
 ;   n: name of variable
 ;   v: value assigned to that variable
 (define addVar
   (lambda (n v)
-    (setState (assembleState (removeVar n S) ; reassemble the state using the new state after removing the variable
-                             (combine (combine n (combine v '())) '()) )))) ; as well as the new variable pair
+    (setState (combine (assembleState (next S) (combine (combine n (combine v '())) '())) ; create the new layer
+                       (rest S))) )) ; and combine it with the rest of the layers
+
+; Use this function to change the value of a variable that already exists
+
+(define changeVar
+  (lambda (n v)
+    (changeVar-cps n v S (lambda (v) (setState v)))))
+
+; A helper function used by changeVar to recursively search through the state
+; We use continuation passing style              
+(define changeVar-cps
+  (lambda (n v s return)
+    (cond
+      ((null? s) (return '()))
+      ((null? (next s)) (changeVar-cps n v (rest s) (lambda (v) (return (combine (next s) v)))))
+      ((eq? (next (next s)) n) (return (assembleState (removeVar n s)
+                                                       (combine (combine n (combine v '())) '()))))
+      ((list? (next (next s))) (changeVar-cps n v (next s)
+                                              (lambda (v1) (changeVar-cps n v (rest s)
+                                                                          (lambda (v2) (return (combine v1 v2)))))))
+      (else (changeVar-cps n v (rest s) (lambda (v) (return (combine (next s) v))))) )))
+      
+               
+(define return-cont
+  (lambda (v)
+    v))
 
 ; This function is a recursive function that looks through the current state s 
 ; and removes the first instance of a variable with the name n.
@@ -70,7 +106,7 @@
 ; Helper function used by addVar to reassemble the state with the new (name value) pair.
 ; 
 ; params:
-;   s: new state
+;   s: new layer of the state
 ;   v: new (name value) pair
 (define assembleState
   (lambda (s v)
@@ -108,13 +144,15 @@
       (else (if (declared? (next l)) (valueOf (next l) S) (error ("Variable was not declared!")))))))
 
 ; A recursive function that finds the value (int or bool) of a declared variable in the state
-
 (define valueOf
   (lambda (x l)
     (cond
       ((null? l) '())
+      ((null? (next l)) (valueOf x (rest l)))
       ((eq? (next (next l)) x) (second (first l)))
-      (else (valueOf x (cdr l))) )))
+      ((list? (next (next l))) (if (null? (valueOf x (next l))) (valueOf x (rest l)) (valueOf x (next l)))) 
+      (else (valueOf x (rest l))) )))
+
 
 ; Used under MIT License The Little Schemer. All Rights Reserved
 (define atom?
